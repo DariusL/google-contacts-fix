@@ -14,7 +14,7 @@ SCOPES = ["https://www.googleapis.com/auth/contacts"]
 
 
 def main(force: bool, limit: Optional[int]):
-    print(f'Including {limit} people')
+    print(f'Including {limit if limit else "all"} people')
     print(f'Will {"UPDATE" if force else "NOT UPDATE"} contacts')
     token = None
     if os.path.exists("token.json"):
@@ -37,7 +37,8 @@ def main(force: bool, limit: Optional[int]):
             names = person.get("names", [])
             name = names[0].get("displayName") if names else 'NONAME'
             print(f'{person["resourceName"]} - {name}')
-            numbers = deepcopy(person.get('phoneNumbers', []))
+            numbers = person.get('phoneNumbers', [])
+            original_numbers = deepcopy(numbers)
             changed = False
             for number in numbers:
                 if number['value'].startswith('8'):
@@ -48,9 +49,16 @@ def main(force: bool, limit: Optional[int]):
                     changed = True
             if changed:
                 print('  Before')
-                print(f"    {person.get('phoneNumbers', [])}")
+                print(f"    {original_numbers}")
                 print('  After')
                 print(f"    {numbers}")
+            if force:
+                service.people().updateContact(
+                    resourceName=person['resourceName'],
+                    body=person,
+                    personFields="names,phoneNumbers",
+                    updatePersonFields="phoneNumbers"
+                ).execute()
     except HttpError as err:
         print(err)
 
@@ -58,7 +66,7 @@ def main(force: bool, limit: Optional[int]):
 def get_connections(service, limit: Optional[int]):
     results = service.people() \
         .connections() \
-        .list(resourceName="people/me", pageSize=100, personFields="names,phoneNumbers") \
+        .list(resourceName="people/me", pageSize=1000, personFields="names,phoneNumbers") \
         .execute()
     connections = [
         connection
