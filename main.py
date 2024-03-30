@@ -39,19 +39,16 @@ def main(force: bool, limit: Optional[int]):
             print(f'{person["resourceName"]} - {name}')
             numbers = person.get('phoneNumbers', [])
             original_numbers = deepcopy(numbers)
-            changed = False
             for number in numbers:
                 if number['value'].startswith('8'):
                     value = number["value"]
                     fixed_value = fix_number(value)
                     print(f'  {number.get("type", "NOTYPE")} - {value} -> {fixed_value}')
                     number['value'] = fixed_value
-                    changed = True
-            if changed:
-                print('  Before')
-                print(f"    {original_numbers}")
-                print('  After')
-                print(f"    {numbers}")
+            print('  Before')
+            print(f"    {original_numbers}")
+            print('  After')
+            print(f"    {numbers}")
             if force:
                 service.people().updateContact(
                     resourceName=person['resourceName'],
