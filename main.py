@@ -87,7 +87,7 @@ def fix_number(original: str) -> str:
 
 if __name__ == "__main__":
     parser = ArgumentParser()
-    parser.add_argument('-f', '--force', default=False, action='store_true')
-    parser.add_argument('-l', '--limit', action='store', type=int)
+    parser.add_argument('-f', '--force', default=False, action='store_true', help='Do changes instead of listing them')
+    parser.add_argument('-l', '--limit', action='store', type=int, help='How many contacts to modify/show')
     args = parser.parse_args()
     main(args.force, args.limit)
