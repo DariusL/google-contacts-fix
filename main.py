@@ -14,6 +14,8 @@ SCOPES = ["https://www.googleapis.com/auth/contacts"]
 
 
 def main(force: bool, limit: Optional[int]):
+    print(f'Including {limit} people')
+    print(f'Will {"UPDATE" if force else "NOT UPDATE"} contacts')
     token = None
     if os.path.exists("token.json"):
         token = Credentials.from_authorized_user_file("token.json", SCOPES)
