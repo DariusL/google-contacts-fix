@@ -1,6 +1,7 @@
 import os.path
 from argparse import ArgumentParser
 from copy import deepcopy
+from typing import Optional
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -12,7 +13,7 @@ from googleapiclient.errors import HttpError
 SCOPES = ["https://www.googleapis.com/auth/contacts"]
 
 
-def main(force: bool):
+def main(force: bool, limit: Optional[int]):
     token = None
     if os.path.exists("token.json"):
         token = Credentials.from_authorized_user_file("token.json", SCOPES)
@@ -28,22 +29,31 @@ def main(force: bool):
     try:
         service = build("people", "v1", credentials=token)
 
-        connections = get_connections(service)
+        connections = get_connections(service, limit)
 
         for person in connections:
             names = person.get("names", [])
             name = names[0].get("displayName") if names else 'NONAME'
             print(f'{person["resourceName"]} - {name}')
             numbers = deepcopy(person.get('phoneNumbers', []))
+            changed = False
             for number in numbers:
                 if number['value'].startswith('8'):
                     value = number["value"]
-                    print(f'  {number.get("type", "NOTYPE")} - {value} -> {fix_number(value)}')
+                    fixed_value = fix_number(value)
+                    print(f'  {number.get("type", "NOTYPE")} - {value} -> {fixed_value}')
+                    number['value'] = fixed_value
+                    changed = True
+            if changed:
+                print('  Before')
+                print(f"    {person.get('phoneNumbers', [])}")
+                print('  After')
+                print(f"    {numbers}")
     except HttpError as err:
         print(err)
 
 
-def get_connections(service):
+def get_connections(service, limit: Optional[int]):
     results = service.people() \
         .connections() \
         .list(resourceName="people/me", pageSize=100, personFields="names,phoneNumbers") \
@@ -55,7 +65,7 @@ def get_connections(service):
         if connection.get('phoneNumbers', []) and any(
             number['value'].startswith('8') for number in connection.get('phoneNumbers'))
     ]
-    return connections
+    return connections[:limit]
 
 
 def fix_number(original: str) -> str:
@@ -68,6 +78,6 @@ def fix_number(original: str) -> str:
 if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument('-f', '--force', default=False, action='store_true')
+    parser.add_argument('-l', '--limit', action='store', type=int)
     args = parser.parse_args()
-    print(args.force)
-    main(args.force)
+    main(args.force, args.limit)
